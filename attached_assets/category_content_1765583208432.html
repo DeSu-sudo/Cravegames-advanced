@@ -1,0 +1,38 @@
+<div class="content-wrapper">
+    <div class="content-column">
+        <div class="section">
+            <div class="section-header">
+                <h1 class="section-title">{{ category_name }} Games</h1>
+                <div class="sort-container">
+                    <label for="sort-by">Sort by:</label>
+                    <select id="sort-by" name="sort" data-category="{{ category_name }}">
+                        <option value="play_count" {% if current_sort == 'play_count' %}selected{% endif %}>Most Played</option>
+                        <option value="rating" {% if current_sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+                        <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="games-grid">
+                {% for game in games %}
+                <div class="game-card" onclick="location.href='/game/{{ game.id }}'">
+                    <img src="/thumbnail/{{ game.id }}" alt="{{ game.name }}" class="game-card-img">
+                    <div class="game-overlay">
+                         <div class="game-title">{{ game.name }}</div>
+                         <div class="game-card-stats">
+                            <span><i data-lucide="play-circle"></i> {{ game.play_count }}</span>
+                            <span><i data-lucide="star"></i> {{ "%.1f"|format(game.average_rating) }}</span>
+                         </div>
+                    </div>
+                </div>
+                {% else %}
+                <p>No games found in this category.</p>
+                {% endfor %}
+            </div>
+
+            <div style="margin-top: 40px;">
+                {% include '_ad_horizontal.html' %}
+            </div>
+        </div>
+    </div>
+</div>

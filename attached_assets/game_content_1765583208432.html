@@ -1,0 +1,106 @@
+{% set half = (other_games|length / 2)|round(0, 'floor')|int %}
+<div class="game-page-wrapper">
+    <div class="recs-column-flanking">
+        {% for other_game in other_games[:half] %}
+            <a href="/game/{{ other_game.id }}" class="rec-thumbnail-link">
+                <img src="/thumbnail/{{ other_game.id }}" alt="{{ other_game.name }}">
+            </a>
+        {% endfor %}
+        
+        <div class="side-ad-container">
+             {% include '_ad_vertical.html' %}
+        </div>
+    </div>
+
+    <div class="game-content-column">
+        <div class="game-container">
+            {% set ns = namespace(game_url='') %}
+            {% if game.type == 'iframe' %}
+                {% set ns.game_url = game.iframe_url %}
+            {% elif game.type == 'flash' %}
+                {% set ns.game_url = url_for('play_game', game_id=game.id) %}
+            {% elif game.type == 'html' and game.entry_point %}
+                {% set ns.game_url = url_for('game_assets', game_id=game.id, filename=game.entry_point) %}
+            {% endif %}
+            <iframe src="{{ ns.game_url }}" class="game-frame" id="gameFrame" allowfullscreen sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+
+        <div class="game-player-bar">
+            <div class="player-bar-info">
+                <span class="player-bar-title">{{ game.name }}</span>
+            </div>
+            <div class="player-bar-actions">
+                {% if current_user.is_authenticated %}
+                <button id="favorite-btn" class="favorite-btn {{ 'favorited' if game.is_favorite }}" data-game-id="{{ game.id }}" title="Add to Favorites">
+                    <i data-lucide="heart"></i>
+                </button>
+                {% endif %}
+                <button class="fullscreen-btn" id="fullscreenBtn" title="Fullscreen">
+                    <i data-lucide="maximize"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="game-header">
+            <img src="/thumbnail/{{ game.id }}" alt="{{ game.name }}" class="game-thumbnail">
+            <div class="game-info">
+                <h1>{{ game.name }}</h1>
+                <div class="game-meta">
+                    <div class="star-rating" data-game-id="{{ game.id }}" data-average-rating="{{ game.average_rating }}" data-interactive="{{ 'true' if current_user.is_authenticated else 'false' }}">
+                        {% set rounded_rating = game.average_rating|round|int %}
+                        {% for i in range(1, 6) %}
+                            <i class="star {{ 'filled' if i <= rounded_rating else '' }}" data-lucide="star" data-value="{{i}}"></i>
+                        {% endfor %}
+                    </div>
+                    {% if current_user.is_authenticated %}
+                        <span class="rating-score">{{ "%.1f"|format(game.average_rating) }}/5</span>
+                        <span class="rating-count">({{ game.rating_count }} ratings)</span>
+                    {% else %}
+                        <span class="rating-score" style="font-size: 14px; color: #aaa;">Log in to rate and see average</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="game-details">
+            <h2>About {{ game.name }}</h2>
+            <p>{{ game.description or "No description available for this game." }}</p>
+            {% if game.instructions %}
+            <h3>How to Play</h3>
+            <p>{{ game.instructions }}</p>
+            {% endif %}
+        </div>
+        
+        <div style="margin: 40px 0;">
+            {% include '_ad_horizontal.html' %}
+        </div>
+
+        <div id="comments-section" class="comments-container" data-game-id="{{ game.id }}">
+            <h2>Comments</h2>
+            {% if current_user.is_authenticated %}
+            <form id="comment-form" class="comment-form">
+                <textarea name="comment" placeholder="Write a comment..." required></textarea>
+                <button type="submit">Post Comment</button>
+            </form>
+            {% else %}
+            <p class="comment-login-prompt">
+                <a href="/login" data-no-spa>Log in</a> to post a comment.
+            </p>
+            {% endif %}
+            <div id="comments-list" class="comments-list">
+                </div>
+        </div>
+    </div>
+
+    <div class="recs-column-flanking">
+         {% for other_game in other_games[half:] %}
+            <a href="/game/{{ other_game.id }}" class="rec-thumbnail-link">
+                <img src="/thumbnail/{{ other_game.id }}" alt="{{ other_game.name }}">
+            </a>
+        {% endfor %}
+
+        <div class="side-ad-container">
+            {% include '_ad_vertical.html' %}
+        </div>
+    </div>
+</div>
