@@ -39,12 +39,11 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Trending Section */}
       {data.trendingGames.length > 0 && (
         <GameCarousel
           title="Trending now"
-          subtitle="Play and explore our top trending games across all categories!"
           games={data.trendingGames}
           showFireIcon
         />

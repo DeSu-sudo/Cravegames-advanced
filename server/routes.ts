@@ -11,6 +11,7 @@ const SALT_ROUNDS = 10;
 declare module "express-session" {
   interface SessionData {
     userId?: string;
+    adminVerified?: boolean;
   }
 }
 
@@ -360,8 +361,38 @@ export async function registerRoutes(
 
   // ==================== ADMIN ROUTES ====================
 
+  // Verify admin password (separate from user authentication)
+  app.post("/api/admin/verify-password", async (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (!adminPassword) {
+      return res.status(500).json({ error: "Admin password not configured" });
+    }
+    
+    if (password === adminPassword) {
+      req.session.adminVerified = true;
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: "Invalid admin password" });
+    }
+  });
+
+  // Check admin session status
+  app.get("/api/admin/session", async (req, res) => {
+    res.json({ verified: !!req.session.adminVerified });
+  });
+
+  // Middleware to require admin password verification
+  async function requireAdminPassword(req: Request, res: Response, next: NextFunction) {
+    if (!req.session.adminVerified) {
+      return res.status(401).json({ error: "Admin password verification required" });
+    }
+    next();
+  }
+
   // Get admin dashboard data
-  app.get("/api/admin/dashboard", requireAdmin, async (req, res) => {
+  app.get("/api/admin/dashboard", requireAdmin, requireAdminPassword, async (req, res) => {
     const [games, categories, storeItems] = await Promise.all([
       storage.getGames(),
       storage.getCategories(),
@@ -371,7 +402,7 @@ export async function registerRoutes(
   });
 
   // GAMES CRUD
-  app.post("/api/admin/games", requireAdmin, async (req, res) => {
+  app.post("/api/admin/games", requireAdmin, requireAdminPassword, async (req, res) => {
     try {
       const parsed = insertGameSchema.parse(req.body);
       const game = await storage.createGame(parsed);
@@ -384,7 +415,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/admin/games/:id", requireAdmin, async (req, res) => {
+  app.put("/api/admin/games/:id", requireAdmin, requireAdminPassword, async (req, res) => {
     try {
       const game = await storage.updateGame(req.params.id, req.body);
       if (!game) {
@@ -396,13 +427,13 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/games/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/admin/games/:id", requireAdmin, requireAdminPassword, async (req, res) => {
     await storage.deleteGame(req.params.id);
     res.json({ success: true });
   });
 
   // CATEGORIES CRUD
-  app.post("/api/admin/categories", requireAdmin, async (req, res) => {
+  app.post("/api/admin/categories", requireAdmin, requireAdminPassword, async (req, res) => {
     try {
       const parsed = insertCategorySchema.parse(req.body);
       const category = await storage.createCategory(parsed);
@@ -415,7 +446,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+  app.put("/api/admin/categories/:id", requireAdmin, requireAdminPassword, async (req, res) => {
     try {
       const category = await storage.updateCategory(req.params.id, req.body);
       if (!category) {
@@ -427,13 +458,13 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/admin/categories/:id", requireAdmin, requireAdminPassword, async (req, res) => {
     await storage.deleteCategory(req.params.id);
     res.json({ success: true });
   });
 
   // STORE ITEMS CRUD
-  app.post("/api/admin/store-items", requireAdmin, async (req, res) => {
+  app.post("/api/admin/store-items", requireAdmin, requireAdminPassword, async (req, res) => {
     try {
       const parsed = insertStoreItemSchema.parse(req.body);
       const item = await storage.createStoreItem(parsed);
@@ -446,7 +477,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/admin/store-items/:id", requireAdmin, async (req, res) => {
+  app.put("/api/admin/store-items/:id", requireAdmin, requireAdminPassword, async (req, res) => {
     try {
       const item = await storage.updateStoreItem(req.params.id, req.body);
       if (!item) {
@@ -458,7 +489,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/store-items/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/admin/store-items/:id", requireAdmin, requireAdminPassword, async (req, res) => {
     await storage.deleteStoreItem(req.params.id);
     res.json({ success: true });
   });

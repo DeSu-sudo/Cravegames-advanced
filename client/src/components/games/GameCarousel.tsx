@@ -48,22 +48,17 @@ export function GameCarousel({ title, subtitle, games, showFireIcon, seeAllHref 
   if (games.length === 0) return null;
 
   return (
-    <section className="mb-8 md:mb-12" data-testid={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+    <section className="mb-4 md:mb-6" data-testid={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-5 px-1">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            {title}
-            {showFireIcon && (
-              <Flame className="h-5 w-5 md:h-6 md:w-6 text-orange-500 fill-orange-500" />
-            )}
-          </h2>
-          {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      <div className="flex items-center justify-between gap-2 mb-2 md:mb-3 px-1">
+        <h2 className="text-base md:text-lg font-bold flex items-center gap-1.5">
+          {title}
+          {showFireIcon && (
+            <Flame className="h-4 w-4 md:h-5 md:w-5 text-orange-500 fill-orange-500" />
           )}
-        </div>
+        </h2>
         {seeAllHref && (
-          <Button variant="outline" size="sm" className="self-start sm:self-auto rounded-full" asChild>
+          <Button variant="ghost" size="sm" className="h-7 text-xs px-2" asChild>
             <a href={seeAllHref} data-testid="button-see-all">See All</a>
           </Button>
         )}
@@ -76,19 +71,19 @@ export function GameCarousel({ title, subtitle, games, showFireIcon, seeAllHref 
           variant="secondary"
           size="icon"
           className={cn(
-            "absolute left-2 top-1/2 -translate-y-1/2 z-10 h-11 w-11 rounded-full shadow-lg transition-all duration-200 hidden md:flex",
+            "absolute left-1 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full shadow-md transition-all duration-200 hidden md:flex",
             canScrollLeft ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
           )}
           onClick={() => scroll("left")}
           data-testid="button-carousel-prev"
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-4 w-4" />
         </Button>
 
         {/* Scrollable container */}
         <div
           ref={scrollRef}
-          className="flex gap-3 md:gap-4 overflow-x-auto scroll-smooth scrollbar-hide pb-2 -mx-4 px-4 md:mx-0 md:px-0"
+          className="flex gap-2 md:gap-3 overflow-x-auto scroll-smooth scrollbar-hide pb-1 -mx-4 px-4 md:mx-0 md:px-0"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {games.map((game) => (
@@ -101,13 +96,13 @@ export function GameCarousel({ title, subtitle, games, showFireIcon, seeAllHref 
           variant="secondary"
           size="icon"
           className={cn(
-            "absolute right-2 top-1/2 -translate-y-1/2 z-10 h-11 w-11 rounded-full shadow-lg transition-all duration-200 hidden md:flex",
+            "absolute right-1 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full shadow-md transition-all duration-200 hidden md:flex",
             canScrollRight ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
           )}
           onClick={() => scroll("right")}
           data-testid="button-carousel-next"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </section>

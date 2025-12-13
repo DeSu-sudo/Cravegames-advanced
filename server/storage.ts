@@ -90,7 +90,7 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    // Seed categories
+    // Seed only categories - games and avatars are added through admin panel
     const categoryData = [
       { name: "Action", icon: "gamepad-2" },
       { name: "Puzzle", icon: "gamepad-2" },
@@ -102,67 +102,6 @@ export class MemStorage implements IStorage {
     categoryData.forEach(cat => {
       const id = randomUUID();
       this.categories.set(id, { id, ...cat });
-    });
-
-    const categoryIds = Array.from(this.categories.keys());
-
-    // Seed games with placeholder images
-    const gameData = [
-      { name: "Space Shooter", description: "Blast through waves of enemies in this exciting space shooter!", instructions: "Use arrow keys to move, space to shoot", categoryId: categoryIds[0], isTrending: true, badge: "hot" as const },
-      { name: "Block Puzzle", description: "Solve challenging block puzzles to advance through levels", instructions: "Drag and drop blocks to complete the puzzle", categoryId: categoryIds[1], isTrending: true, badge: "new" as const },
-      { name: "Street Racer", description: "Race through city streets at high speed", instructions: "Arrow keys to steer, avoid obstacles", categoryId: categoryIds[2], isTrending: true },
-      { name: "Basketball Pro", description: "Shoot hoops and become a basketball champion", instructions: "Click and drag to aim, release to shoot", categoryId: categoryIds[3], isTrending: true, badge: "hot" as const },
-      { name: "Dungeon Quest", description: "Explore dungeons and defeat monsters", instructions: "WASD to move, click to attack", categoryId: categoryIds[4], isTrending: true },
-      { name: "Ninja Jump", description: "Jump and climb through ninja training courses", instructions: "Space to jump, arrows to move", categoryId: categoryIds[0], badge: "new" as const },
-      { name: "Match Master", description: "Match 3 or more gems to score points", instructions: "Swap adjacent gems to make matches", categoryId: categoryIds[1] },
-      { name: "Drift King", description: "Master the art of drifting on various tracks", instructions: "Hold space to drift, arrows to steer", categoryId: categoryIds[2], badge: "hot" as const },
-      { name: "Soccer Stars", description: "Score goals in fast-paced soccer matches", instructions: "Click to kick, aim for the goal", categoryId: categoryIds[3] },
-      { name: "Treasure Hunter", description: "Search for hidden treasures across mysterious islands", instructions: "Click to dig, collect treasures", categoryId: categoryIds[4], badge: "new" as const },
-      { name: "Zombie Defense", description: "Defend your base against zombie waves", instructions: "Click to place turrets, upgrade for more power", categoryId: categoryIds[0] },
-      { name: "Word Search", description: "Find hidden words in the letter grid", instructions: "Click and drag to select words", categoryId: categoryIds[1] },
-      { name: "Motorcycle Rush", description: "Race motorcycles through challenging terrain", instructions: "Up to accelerate, balance with left/right", categoryId: categoryIds[2] },
-      { name: "Golf Master", description: "Play through 18 holes of challenging golf", instructions: "Click and drag to aim, release to swing", categoryId: categoryIds[3] },
-      { name: "Mystery Island", description: "Solve mysteries on a tropical island", instructions: "Click to interact with objects", categoryId: categoryIds[4] },
-    ];
-
-    gameData.forEach((game, index) => {
-      const id = randomUUID();
-      this.games.set(id, {
-        id,
-        name: game.name,
-        description: game.description,
-        instructions: game.instructions,
-        categoryId: game.categoryId,
-        thumbnailUrl: `https://picsum.photos/seed/${game.name.replace(/\s/g, '')}/400/300`,
-        iframeUrl: "https://www.example.com/game-placeholder",
-        type: "iframe",
-        playCount: Math.floor(Math.random() * 10000) + 500,
-        averageRating: Math.random() * 2 + 3, // 3-5 rating
-        ratingCount: Math.floor(Math.random() * 500) + 50,
-        badge: game.badge || null,
-        isTrending: game.isTrending || false,
-      });
-    });
-
-    // Seed store items
-    const storeItemData = [
-      { name: "Cool Cat", price: 500, itemType: "avatar" },
-      { name: "Robot Head", price: 750, itemType: "avatar" },
-      { name: "Ninja Mask", price: 1000, itemType: "avatar" },
-      { name: "Space Helmet", price: 1500, itemType: "avatar" },
-      { name: "Crown", price: 2500, itemType: "avatar" },
-      { name: "Dragon Avatar", price: 5000, itemType: "avatar" },
-    ];
-
-    storeItemData.forEach(item => {
-      const id = randomUUID();
-      this.storeItems.set(id, {
-        id,
-        name: item.name,
-        imageUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${item.name.replace(/\s/g, '')}`,
-        price: item.price,
-        itemType: item.itemType,
-      });
     });
   }
 
