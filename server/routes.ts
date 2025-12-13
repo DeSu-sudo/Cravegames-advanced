@@ -4,7 +4,7 @@ import session from "express-session";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import { storage } from "./storage";
-import { uploadFile, getSupabaseClient } from "./supabase";
+import { uploadFile, supabase } from "./supabase";
 import { insertUserSchema, insertCommentSchema, insertRatingSchema, insertGameSchema, insertCategorySchema, insertStoreItemSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -510,11 +510,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const supabase = getSupabaseClient();
-      if (!supabase) {
-        return res.status(500).json({ error: "File storage not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY." });
-      }
-
       const ext = req.file.originalname.split(".").pop() || "png";
       const filename = `avatar-${Date.now()}.${ext}`;
       const url = await uploadFile("avatars", filename, req.file.buffer, req.file.mimetype);
@@ -535,11 +530,6 @@ export async function registerRoutes(
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const supabase = getSupabaseClient();
-      if (!supabase) {
-        return res.status(500).json({ error: "File storage not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY." });
       }
 
       const ext = req.file.originalname.split(".").pop() || "png";
