@@ -1,0 +1,693 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { Plus, Pencil, Trash2, Gamepad2, FolderOpen, ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Game, Category, StoreItem, User } from "@shared/schema";
+
+interface AdminData {
+  games: Game[];
+  categories: Category[];
+  storeItems: StoreItem[];
+}
+
+function GameForm({ 
+  game, 
+  categories, 
+  onSubmit, 
+  onCancel 
+}: { 
+  game?: Game; 
+  categories: Category[]; 
+  onSubmit: (data: any) => void; 
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: game?.name || "",
+    description: game?.description || "",
+    instructions: game?.instructions || "",
+    categoryId: game?.categoryId || "",
+    thumbnailUrl: game?.thumbnailUrl || "",
+    iframeUrl: game?.iframeUrl || "",
+    type: game?.type || "iframe",
+    badge: game?.badge || "",
+    isTrending: game?.isTrending || false,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Game Name</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Enter game name"
+            data-testid="input-game-name"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select value={formData.categoryId} onValueChange={(v) => setFormData({ ...formData, categoryId: v })}>
+            <SelectTrigger data-testid="select-category">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Game description"
+          data-testid="input-game-description"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Instructions</Label>
+        <Textarea
+          value={formData.instructions}
+          onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+          placeholder="How to play"
+          data-testid="input-game-instructions"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Thumbnail URL</Label>
+          <Input
+            value={formData.thumbnailUrl}
+            onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+            placeholder="https://example.com/image.jpg"
+            data-testid="input-thumbnail-url"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Game Type</Label>
+          <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
+            <SelectTrigger data-testid="select-game-type">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="iframe">Iframe (HTML5)</SelectItem>
+              <SelectItem value="flash">Flash (Ruffle)</SelectItem>
+              <SelectItem value="embed">Embed Code</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Game URL / Embed Source</Label>
+        <Input
+          value={formData.iframeUrl}
+          onChange={(e) => setFormData({ ...formData, iframeUrl: e.target.value })}
+          placeholder="https://example.com/game or .swf URL for Flash"
+          data-testid="input-game-url"
+        />
+        <p className="text-xs text-muted-foreground">
+          For HTML5: Direct URL to the game. For Flash: URL to .swf file. Ruffle will handle Flash games automatically.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Badge (optional)</Label>
+          <Select value={formData.badge || "none"} onValueChange={(v) => setFormData({ ...formData, badge: v === "none" ? "" : v })}>
+            <SelectTrigger data-testid="select-badge">
+              <SelectValue placeholder="No badge" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Badge</SelectItem>
+              <SelectItem value="new">New</SelectItem>
+              <SelectItem value="hot">Hot</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-3 pt-6">
+          <Switch
+            checked={formData.isTrending}
+            onCheckedChange={(v) => setFormData({ ...formData, isTrending: v })}
+            data-testid="switch-trending"
+          />
+          <Label>Trending</Label>
+        </div>
+      </div>
+
+      <div className="flex gap-3 justify-end pt-4">
+        <Button variant="outline" onClick={onCancel} data-testid="button-cancel">
+          Cancel
+        </Button>
+        <Button onClick={() => onSubmit(formData)} data-testid="button-save-game">
+          {game ? "Update Game" : "Add Game"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CategoryForm({ 
+  category, 
+  onSubmit, 
+  onCancel 
+}: { 
+  category?: Category; 
+  onSubmit: (data: any) => void; 
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: category?.name || "",
+    icon: category?.icon || "gamepad-2",
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Category Name</Label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Enter category name"
+          data-testid="input-category-name"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Icon (Lucide icon name)</Label>
+        <Input
+          value={formData.icon}
+          onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+          placeholder="gamepad-2"
+          data-testid="input-category-icon"
+        />
+      </div>
+      <div className="flex gap-3 justify-end pt-4">
+        <Button variant="outline" onClick={onCancel} data-testid="button-cancel-category">
+          Cancel
+        </Button>
+        <Button onClick={() => onSubmit(formData)} data-testid="button-save-category">
+          {category ? "Update" : "Add"} Category
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StoreItemForm({ 
+  item, 
+  onSubmit, 
+  onCancel 
+}: { 
+  item?: StoreItem; 
+  onSubmit: (data: any) => void; 
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: item?.name || "",
+    imageUrl: item?.imageUrl || "",
+    price: item?.price || 100,
+    itemType: item?.itemType || "avatar",
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Avatar Name</Label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Enter avatar name"
+          data-testid="input-avatar-name"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Image URL</Label>
+        <Input
+          value={formData.imageUrl}
+          onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+          placeholder="https://example.com/avatar.png"
+          data-testid="input-avatar-image"
+        />
+        <p className="text-xs text-muted-foreground">
+          Tip: Use dicebear.com for generated avatars (e.g., https://api.dicebear.com/7.x/bottts/svg?seed=YourName)
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label>Price (Crave Coins)</Label>
+        <Input
+          type="number"
+          value={formData.price}
+          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+          placeholder="100"
+          data-testid="input-avatar-price"
+        />
+      </div>
+      <div className="flex gap-3 justify-end pt-4">
+        <Button variant="outline" onClick={onCancel} data-testid="button-cancel-avatar">
+          Cancel
+        </Button>
+        <Button onClick={() => onSubmit(formData)} data-testid="button-save-avatar">
+          {item ? "Update" : "Add"} Avatar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function Admin() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("games");
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingStoreItem, setEditingStoreItem] = useState<StoreItem | null>(null);
+  const [showGameForm, setShowGameForm] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showStoreItemForm, setShowStoreItemForm] = useState(false);
+
+  const { data: currentUser } = useQuery<User | null>({
+    queryKey: ["/api/me"],
+  });
+
+  const { data, isLoading } = useQuery<AdminData>({
+    queryKey: ["/api/admin/dashboard"],
+    enabled: !!currentUser?.isAdmin,
+  });
+
+  const createGameMutation = useMutation({
+    mutationFn: (gameData: any) => apiRequest("POST", "/api/admin/games", gameData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/home"] });
+      setShowGameForm(false);
+      toast({ title: "Game added successfully!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to add game", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateGameMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/admin/games/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/home"] });
+      setEditingGame(null);
+      toast({ title: "Game updated!" });
+    },
+  });
+
+  const deleteGameMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/games/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/home"] });
+      toast({ title: "Game deleted" });
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/categories", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setShowCategoryForm(false);
+      toast({ title: "Category added!" });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/admin/categories/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setEditingCategory(null);
+      toast({ title: "Category updated!" });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category deleted" });
+    },
+  });
+
+  const createStoreItemMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/store-items", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/store"] });
+      setShowStoreItemForm(false);
+      toast({ title: "Avatar added to store!" });
+    },
+  });
+
+  const updateStoreItemMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/admin/store-items/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/store"] });
+      setEditingStoreItem(null);
+      toast({ title: "Avatar updated!" });
+    },
+  });
+
+  const deleteStoreItemMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/store-items/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/store"] });
+      toast({ title: "Avatar removed from store" });
+    },
+  });
+
+  if (!currentUser) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground mb-4">Please log in to access admin panel.</p>
+        <Button asChild>
+          <Link href="/login">Login</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!currentUser.isAdmin) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">You do not have admin access.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <Skeleton className="h-10 w-64 mb-6" />
+        <Skeleton className="h-12 w-full mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Failed to load admin data.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold" data-testid="text-admin-title">
+          Admin Panel
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Manage games, categories, and avatar store
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-6">
+          <TabsTrigger value="games" className="gap-2" data-testid="tab-games">
+            <Gamepad2 className="h-4 w-4" />
+            Games ({data.games.length})
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2" data-testid="tab-categories">
+            <FolderOpen className="h-4 w-4" />
+            Categories ({data.categories.length})
+          </TabsTrigger>
+          <TabsTrigger value="avatars" className="gap-2" data-testid="tab-avatars">
+            <ShoppingBag className="h-4 w-4" />
+            Avatars ({data.storeItems.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="games">
+          <div className="mb-4 flex justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              Add and manage games. Supports HTML5 iframes, Flash games (via Ruffle), and embed codes.
+            </p>
+            <Dialog open={showGameForm} onOpenChange={setShowGameForm}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" data-testid="button-add-game">
+                  <Plus className="h-4 w-4" />
+                  Add Game
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Game</DialogTitle>
+                </DialogHeader>
+                <GameForm
+                  categories={data.categories}
+                  onSubmit={(formData) => createGameMutation.mutate(formData)}
+                  onCancel={() => setShowGameForm(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Dialog open={!!editingGame} onOpenChange={(open) => !open && setEditingGame(null)}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Game</DialogTitle>
+              </DialogHeader>
+              {editingGame && (
+                <GameForm
+                  game={editingGame}
+                  categories={data.categories}
+                  onSubmit={(formData) => updateGameMutation.mutate({ id: editingGame.id, data: formData })}
+                  onCancel={() => setEditingGame(null)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.games.map((game) => (
+              <Card key={game.id} className="p-4" data-testid={`card-game-${game.id}`}>
+                <div className="flex gap-3">
+                  <img
+                    src={game.thumbnailUrl}
+                    alt={game.name}
+                    className="w-20 h-15 rounded-md object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{game.name}</h3>
+                    <p className="text-xs text-muted-foreground">Type: {game.type}</p>
+                    <p className="text-xs text-muted-foreground">Plays: {game.playCount}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1"
+                    onClick={() => setEditingGame(game)}
+                    data-testid={`button-edit-game-${game.id}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => deleteGameMutation.mutate(game.id)}
+                    data-testid={`button-delete-game-${game.id}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <div className="mb-4 flex justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              Organize games into categories for easier navigation.
+            </p>
+            <Dialog open={showCategoryForm} onOpenChange={setShowCategoryForm}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" data-testid="button-add-category">
+                  <Plus className="h-4 w-4" />
+                  Add Category
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Category</DialogTitle>
+                </DialogHeader>
+                <CategoryForm
+                  onSubmit={(formData) => createCategoryMutation.mutate(formData)}
+                  onCancel={() => setShowCategoryForm(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Category</DialogTitle>
+              </DialogHeader>
+              {editingCategory && (
+                <CategoryForm
+                  category={editingCategory}
+                  onSubmit={(formData) => updateCategoryMutation.mutate({ id: editingCategory.id, data: formData })}
+                  onCancel={() => setEditingCategory(null)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {data.categories.map((category) => (
+              <Card key={category.id} className="p-4" data-testid={`card-category-${category.id}`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Gamepad2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{category.name}</h3>
+                    <p className="text-xs text-muted-foreground">Icon: {category.icon}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1"
+                    onClick={() => setEditingCategory(category)}
+                    data-testid={`button-edit-category-${category.id}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => deleteCategoryMutation.mutate(category.id)}
+                    data-testid={`button-delete-category-${category.id}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="avatars">
+          <div className="mb-4 flex justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              Add avatars to the store for users to purchase with Crave Coins.
+            </p>
+            <Dialog open={showStoreItemForm} onOpenChange={setShowStoreItemForm}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" data-testid="button-add-avatar">
+                  <Plus className="h-4 w-4" />
+                  Add Avatar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Avatar</DialogTitle>
+                </DialogHeader>
+                <StoreItemForm
+                  onSubmit={(formData) => createStoreItemMutation.mutate(formData)}
+                  onCancel={() => setShowStoreItemForm(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Dialog open={!!editingStoreItem} onOpenChange={(open) => !open && setEditingStoreItem(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Avatar</DialogTitle>
+              </DialogHeader>
+              {editingStoreItem && (
+                <StoreItemForm
+                  item={editingStoreItem}
+                  onSubmit={(formData) => updateStoreItemMutation.mutate({ id: editingStoreItem.id, data: formData })}
+                  onCancel={() => setEditingStoreItem(null)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {data.storeItems.map((item) => (
+              <Card key={item.id} className="p-4" data-testid={`card-avatar-${item.id}`}>
+                <div className="flex flex-col items-center text-center">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="w-16 h-16 rounded-full object-cover mb-2"
+                  />
+                  <h3 className="font-semibold text-sm">{item.name}</h3>
+                  <p className="text-xs text-muted-foreground">{item.price} coins</p>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1"
+                    onClick={() => setEditingStoreItem(item)}
+                    data-testid={`button-edit-avatar-${item.id}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => deleteStoreItemMutation.mutate(item.id)}
+                    data-testid={`button-delete-avatar-${item.id}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

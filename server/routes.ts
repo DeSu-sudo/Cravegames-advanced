@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, insertCommentSchema, insertRatingSchema } from "@shared/schema";
+import { insertUserSchema, insertCommentSchema, insertRatingSchema, insertGameSchema, insertCategorySchema, insertStoreItemSchema } from "@shared/schema";
 import { z } from "zod";
 
 const SALT_ROUNDS = 10;
@@ -17,6 +17,17 @@ declare module "express-session" {
 async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
+  }
+  next();
+}
+
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  const user = await storage.getUser(req.session.userId);
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ error: "Admin access required" });
   }
   next();
 }
@@ -345,6 +356,111 @@ export async function registerRoutes(
     await storage.updateUserCoins(userId, user.craveCoins + coinsEarned);
 
     res.json({ success: true, coinsEarned, newBalance: user.craveCoins + coinsEarned });
+  });
+
+  // ==================== ADMIN ROUTES ====================
+
+  // Get admin dashboard data
+  app.get("/api/admin/dashboard", requireAdmin, async (req, res) => {
+    const [games, categories, storeItems] = await Promise.all([
+      storage.getGames(),
+      storage.getCategories(),
+      storage.getStoreItems(),
+    ]);
+    res.json({ games, categories, storeItems });
+  });
+
+  // GAMES CRUD
+  app.post("/api/admin/games", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertGameSchema.parse(req.body);
+      const game = await storage.createGame(parsed);
+      res.json(game);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to create game" });
+    }
+  });
+
+  app.put("/api/admin/games/:id", requireAdmin, async (req, res) => {
+    try {
+      const game = await storage.updateGame(req.params.id, req.body);
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+      res.json(game);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update game" });
+    }
+  });
+
+  app.delete("/api/admin/games/:id", requireAdmin, async (req, res) => {
+    await storage.deleteGame(req.params.id);
+    res.json({ success: true });
+  });
+
+  // CATEGORIES CRUD
+  app.post("/api/admin/categories", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(parsed);
+      res.json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.put("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const category = await storage.updateCategory(req.params.id, req.body);
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/admin/categories/:id", requireAdmin, async (req, res) => {
+    await storage.deleteCategory(req.params.id);
+    res.json({ success: true });
+  });
+
+  // STORE ITEMS CRUD
+  app.post("/api/admin/store-items", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertStoreItemSchema.parse(req.body);
+      const item = await storage.createStoreItem(parsed);
+      res.json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to create store item" });
+    }
+  });
+
+  app.put("/api/admin/store-items/:id", requireAdmin, async (req, res) => {
+    try {
+      const item = await storage.updateStoreItem(req.params.id, req.body);
+      if (!item) {
+        return res.status(404).json({ error: "Store item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update store item" });
+    }
+  });
+
+  app.delete("/api/admin/store-items/:id", requireAdmin, async (req, res) => {
+    await storage.deleteStoreItem(req.params.id);
+    res.json({ success: true });
   });
 
   return httpServer;

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Shuffle, Heart, Gamepad2, Store, LogIn, UserPlus, LogOut, LayoutGrid, Menu, X } from "lucide-react";
+import { Home, Shuffle, Heart, Gamepad2, Store, LogIn, UserPlus, LogOut, LayoutGrid, Menu, X, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,6 +23,10 @@ export function AppSidebar({ categories, currentUser, isOpen, onClose }: AppSide
 
   const authItems = currentUser
     ? [{ href: "/favorites", label: "Favorites", icon: Heart }]
+    : [];
+
+  const adminItems = currentUser?.isAdmin
+    ? [{ href: "/admin", label: "Admin Panel", icon: Shield }]
     : [];
 
   return (
@@ -91,6 +95,22 @@ export function AppSidebar({ categories, currentUser, isOpen, onClose }: AppSide
                     location === item.href && "bg-sidebar-accent text-sidebar-accent-foreground"
                   )}
                   data-testid={`nav-${item.label.toLowerCase()}`}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">{item.label}</span>
+                </div>
+              </Link>
+            ))}
+
+            {/* Admin Panel */}
+            {adminItems.map((item) => (
+              <Link key={item.href} href={item.href} onClick={onClose}>
+                <div
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground transition-colors hover-elevate cursor-pointer min-h-[44px]",
+                    location === item.href && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                  data-testid={`nav-${item.label.toLowerCase().replace(" ", "-")}`}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
                   <span className="font-medium">{item.label}</span>

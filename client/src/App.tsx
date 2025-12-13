@@ -16,6 +16,7 @@ import Favorites from "@/pages/Favorites";
 import MakeMore from "@/pages/MakeMore";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 import type { Category as CategoryType, Game, User } from "@shared/schema";
 
@@ -68,6 +69,7 @@ function AppContent() {
             <Route path="/make-more" component={MakeMore} />
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
+            <Route path="/admin" component={Admin} />
             <Route component={NotFound} />
           </Switch>
         </main>

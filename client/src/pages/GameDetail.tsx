@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Heart, Maximize, Star, Send } from "lucide-react";
@@ -62,6 +62,19 @@ export default function GameDetail() {
       setCommentText("");
     },
   });
+
+  // Load Ruffle script for Flash games
+  useEffect(() => {
+    if (data?.game?.type === "flash") {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/@nicebear2003/ruffle@1.0.0/dist/ruffle.js";
+      script.async = true;
+      document.head.appendChild(script);
+      return () => {
+        document.head.removeChild(script);
+      };
+    }
+  }, [data?.game?.type]);
 
   const handleFullscreen = () => {
     const iframe = document.getElementById("gameFrame") as HTMLIFrameElement;
