@@ -7,8 +7,7 @@ import { storage } from "./storage";
 import { uploadFile, supabase } from "./supabase";
 import { insertUserSchema, insertCommentSchema, insertRatingSchema, insertGameSchema, insertCategorySchema, insertStoreItemSchema } from "@shared/schema";
 import { z } from "zod";
-import connectPgSimple from "connect-pg-simple";
-import pg from "pg";
+import createMemoryStore from "memorystore";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -49,35 +48,15 @@ export async function registerRoutes(
   // Trust proxy for production (Render, Heroku, etc.)
   app.set("trust proxy", 1);
 
-  // Create session store for production
-  let sessionStore;
-  if (process.env.DATABASE_URL) {
-    try {
-      const PgStore = connectPgSimple(session);
-      const pool = new pg.Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
-      });
-      
-      // Handle pool errors gracefully
-      pool.on('error', (err) => {
-        console.error('Session store pool error:', err);
-      });
-      
-      sessionStore = new PgStore({
-        pool,
-        tableName: "session",
-        createTableIfMissing: true,
-      });
-    } catch (err) {
-      console.error('Failed to create session store, using memory sessions:', err);
-    }
-  }
+  // Create memory-based session store (works with Supabase - no separate DB needed)
+  const MemoryStore = createMemoryStore(session);
 
   // Session middleware
   app.use(
     session({
-      store: sessionStore,
+      store: new MemoryStore({
+        checkPeriod: 86400000, // prune expired entries every 24h
+      }),
       secret: process.env.SESSION_SECRET || "cravegames-secret-key",
       resave: false,
       saveUninitialized: false,
