@@ -423,19 +423,31 @@ export class SupabaseStorage implements IStorage {
 
   // Comments
   async getCommentsByGame(gameId: string): Promise<CommentWithUser[]> {
-    const { data } = await supabase
+    const { data: comments } = await supabase
       .from('comments')
-      .select('*, users(username)')
+      .select('*')
       .eq('game_id', gameId)
       .order('created_at', { ascending: false });
 
-    return (data || []).map((comment: any) => ({
+    if (!comments || comments.length === 0) {
+      return [];
+    }
+
+    const userIds = [...new Set(comments.map((c: any) => c.user_id))];
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, username')
+      .in('id', userIds);
+
+    const userMap = new Map((users || []).map((u: any) => [u.id, u.username]));
+
+    return comments.map((comment: any) => ({
       id: comment.id,
       userId: comment.user_id,
       gameId: comment.game_id,
       content: comment.content,
       createdAt: new Date(comment.created_at),
-      username: comment.users?.username || 'Unknown'
+      username: userMap.get(comment.user_id) || 'Unknown'
     }));
   }
 
