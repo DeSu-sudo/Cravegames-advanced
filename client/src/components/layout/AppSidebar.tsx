@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Shuffle, Heart, Gamepad2, Store, LogIn, UserPlus, LogOut, LayoutGrid, Menu, X, Shield } from "lucide-react";
+import { Home, Shuffle, Heart, Gamepad2, Store, LogIn, UserPlus, LogOut, LayoutGrid, Menu, X, Shield, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,7 +23,11 @@ export function AppSidebar({ categories, currentUser, isOpen, onClose }: AppSide
   ];
 
   const authItems = currentUser
-    ? [{ href: "/favorites", label: "Favorites", icon: Heart }]
+    ? [
+        { href: "/favorites", label: "Favorites", icon: Heart },
+        { href: "/social", label: "Friends", icon: Users },
+        { href: "/chat", label: "Chat", icon: MessageCircle },
+      ]
     : [];
 
   const adminItems = [{ href: "/admin", label: "Admin Panel", icon: Shield }];

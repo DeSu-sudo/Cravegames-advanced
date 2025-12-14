@@ -18,6 +18,8 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Admin from "@/pages/Admin";
 import RandomGame from "@/pages/RandomGame";
+import Social from "@/pages/Social";
+import Chat from "@/pages/Chat";
 import NotFound from "@/pages/not-found";
 import type { Category as CategoryType, Game, UserWithAvatar } from "@shared/schema";
 
@@ -72,6 +74,8 @@ function AppContent() {
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
             <Route path="/admin" component={Admin} />
+            <Route path="/social" component={Social} />
+            <Route path="/chat" component={Chat} />
             <Route component={NotFound} />
           </Switch>
         </main>
