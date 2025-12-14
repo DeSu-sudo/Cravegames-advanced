@@ -70,6 +70,72 @@ export const inventory = pgTable("inventory", {
   itemId: varchar("item_id").notNull(),
 });
 
+// Friends system
+export const friendships = pgTable("friendships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  friendId: varchar("friend_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const friendRequests = pgTable("friend_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fromUserId: varchar("from_user_id").notNull(),
+  toUserId: varchar("to_user_id").notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const blockedUsers = pgTable("blocked_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  blockedUserId: varchar("blocked_user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Chat system
+export const chatRooms = pgTable("chat_rooms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  isPublic: boolean("is_public").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roomId: varchar("room_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Private messaging
+export const privateConversations = pgTable("private_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user1Id: varchar("user1_id").notNull(),
+  user2Id: varchar("user2_id").notNull(),
+  lastMessageAt: timestamp("last_message_at").notNull().defaultNow(),
+});
+
+export const privateMessages = pgTable("private_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull(),
+  senderId: varchar("sender_id").notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// User-uploaded avatars
+export const userAvatars = pgTable("user_avatars", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  imageUrl: text("image_url").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -114,6 +180,40 @@ export const insertInventorySchema = createInsertSchema(inventory).pick({
   itemId: true,
 });
 
+export const insertFriendRequestSchema = createInsertSchema(friendRequests).pick({
+  fromUserId: true,
+  toUserId: true,
+});
+
+export const insertBlockedUserSchema = createInsertSchema(blockedUsers).pick({
+  userId: true,
+  blockedUserId: true,
+});
+
+export const insertChatRoomSchema = createInsertSchema(chatRooms).pick({
+  name: true,
+  description: true,
+  isPublic: true,
+  createdBy: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).pick({
+  roomId: true,
+  userId: true,
+  content: true,
+});
+
+export const insertPrivateMessageSchema = createInsertSchema(privateMessages).pick({
+  conversationId: true,
+  senderId: true,
+  content: true,
+});
+
+export const insertUserAvatarSchema = createInsertSchema(userAvatars).pick({
+  userId: true,
+  imageUrl: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -139,7 +239,34 @@ export type StoreItem = typeof storeItems.$inferSelect;
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type Inventory = typeof inventory.$inferSelect;
 
+export type Friendship = typeof friendships.$inferSelect;
+
+export type InsertFriendRequest = z.infer<typeof insertFriendRequestSchema>;
+export type FriendRequest = typeof friendRequests.$inferSelect;
+
+export type InsertBlockedUser = z.infer<typeof insertBlockedUserSchema>;
+export type BlockedUser = typeof blockedUsers.$inferSelect;
+
+export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+export type ChatRoom = typeof chatRooms.$inferSelect;
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
+export type PrivateConversation = typeof privateConversations.$inferSelect;
+
+export type InsertPrivateMessage = z.infer<typeof insertPrivateMessageSchema>;
+export type PrivateMessage = typeof privateMessages.$inferSelect;
+
+export type InsertUserAvatar = z.infer<typeof insertUserAvatarSchema>;
+export type UserAvatar = typeof userAvatars.$inferSelect;
+
 // Extended types for frontend
 export type GameWithCategory = Game & { categoryName: string };
-export type CommentWithUser = Comment & { username: string };
+export type CommentWithUser = Comment & { username: string; avatarImageUrl: string | null };
 export type UserWithAvatar = Omit<User, 'password'> & { avatarImageUrl: string | null };
+export type ChatMessageWithUser = ChatMessage & { username: string; avatarImageUrl: string | null };
+export type PrivateMessageWithUser = PrivateMessage & { username: string; avatarImageUrl: string | null };
+export type FriendRequestWithUser = FriendRequest & { fromUsername: string; fromAvatarImageUrl: string | null };
+export type FriendWithInfo = { id: string; friendId: string; username: string; avatarImageUrl: string | null };
+export type ConversationWithUser = PrivateConversation & { otherUsername: string; otherAvatarImageUrl: string | null; lastMessage?: string };

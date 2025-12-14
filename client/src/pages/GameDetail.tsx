@@ -1,16 +1,61 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Heart, Maximize, Star, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { GameCard } from "@/components/games/GameCard";
 import type { Game, CommentWithUser, User } from "@shared/schema";
+
+// Memoized game frame component to prevent reload on re-renders
+const GameFrame = memo(function GameFrame({ game }: { game: Game }) {
+  if (game.type === "flash") {
+    return (
+      <object
+        id="gameFrame"
+        type="application/x-shockwave-flash"
+        data={game.iframeUrl || ""}
+        className="w-full h-full"
+        data-testid="game-flash"
+      >
+        <param name="allowFullScreen" value="true" />
+        <param name="allowScriptAccess" value="always" />
+        <p className="text-muted-foreground text-center p-4">
+          Flash content is loading...
+        </p>
+      </object>
+    );
+  }
+  
+  if (game.type === "uploaded") {
+    return (
+      <iframe
+        id="gameFrame"
+        src={`/api/game/${game.id}/play`}
+        className="w-full h-full"
+        allowFullScreen
+        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
+        data-testid="game-iframe-uploaded"
+      />
+    );
+  }
+  
+  return (
+    <iframe
+      id="gameFrame"
+      src={game.iframeUrl || ""}
+      className="w-full h-full"
+      allowFullScreen
+      sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+      data-testid="game-iframe"
+    />
+  );
+});
 
 interface GameDetailData {
   game: Game;
@@ -32,6 +77,8 @@ export default function GameDetail() {
 
   const { data, isLoading } = useQuery<GameDetailData>({
     queryKey: ["/api/game", id],
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // Don't refetch for 1 minute to prevent reload on orientation change
   });
 
   const favoriteMutation = useMutation({
@@ -116,39 +163,7 @@ export default function GameDetail() {
       <div className="max-w-5xl mx-auto">
         {/* Game Frame */}
         <div className="relative w-full aspect-video bg-card rounded-xl overflow-hidden border border-border">
-          {game.type === "flash" ? (
-            <object
-              id="gameFrame"
-              type="application/x-shockwave-flash"
-              data={game.iframeUrl || ""}
-              className="w-full h-full"
-              data-testid="game-flash"
-            >
-              <param name="allowFullScreen" value="true" />
-              <param name="allowScriptAccess" value="always" />
-              <p className="text-muted-foreground text-center p-4">
-                Flash content is loading...
-              </p>
-            </object>
-          ) : game.type === "uploaded" ? (
-            <iframe
-              id="gameFrame"
-              src={`/api/game/${game.id}/play`}
-              className="w-full h-full"
-              allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
-              data-testid="game-iframe-uploaded"
-            />
-          ) : (
-            <iframe
-              id="gameFrame"
-              src={game.iframeUrl || ""}
-              className="w-full h-full"
-              allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-              data-testid="game-iframe"
-            />
-          )}
+          <GameFrame game={game} />
         </div>
 
         {/* Player Bar */}
@@ -299,6 +314,7 @@ export default function GameDetail() {
               comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3" data-testid={`comment-${comment.id}`}>
                   <Avatar className="h-9 w-9 flex-shrink-0">
+                    <AvatarImage src={comment.avatarImageUrl || ""} alt={comment.username} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {comment.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
