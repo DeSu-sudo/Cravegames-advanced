@@ -622,5 +622,228 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SOCIAL FEATURES ROUTES ====================
+
+  // Search users
+  app.get("/api/users/search", requireAuth, async (req, res) => {
+    const query = req.query.q as string;
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+    const users = await storage.searchUsers(query, req.session.userId!);
+    res.json(users);
+  });
+
+  // Get friends list
+  app.get("/api/friends", requireAuth, async (req, res) => {
+    const friends = await storage.getFriends(req.session.userId!);
+    res.json(friends);
+  });
+
+  // Remove friend
+  app.delete("/api/friends/:friendId", requireAuth, async (req, res) => {
+    await storage.removeFriend(req.session.userId!, req.params.friendId);
+    res.json({ success: true });
+  });
+
+  // Get friend requests
+  app.get("/api/friend-requests", requireAuth, async (req, res) => {
+    const requests = await storage.getFriendRequests(req.session.userId!);
+    res.json(requests);
+  });
+
+  // Get sent friend requests
+  app.get("/api/friend-requests/sent", requireAuth, async (req, res) => {
+    const requests = await storage.getSentFriendRequests(req.session.userId!);
+    res.json(requests);
+  });
+
+  // Send friend request
+  app.post("/api/friend-requests", requireAuth, async (req, res) => {
+    const { toUserId } = req.body;
+    const fromUserId = req.session.userId!;
+
+    if (fromUserId === toUserId) {
+      return res.status(400).json({ error: "Cannot send request to yourself" });
+    }
+
+    const blocked = await storage.isBlocked(fromUserId, toUserId);
+    if (blocked) {
+      return res.status(400).json({ error: "Cannot send request to this user" });
+    }
+
+    const existing = await storage.getPendingFriendRequest(fromUserId, toUserId);
+    if (existing) {
+      return res.status(400).json({ error: "Request already pending" });
+    }
+
+    const friends = await storage.getFriends(fromUserId);
+    if (friends.some(f => f.friendId === toUserId)) {
+      return res.status(400).json({ error: "Already friends" });
+    }
+
+    const request = await storage.sendFriendRequest({ fromUserId, toUserId });
+    res.json(request);
+  });
+
+  // Accept friend request
+  app.post("/api/friend-requests/:id/accept", requireAuth, async (req, res) => {
+    await storage.acceptFriendRequest(req.params.id);
+    res.json({ success: true });
+  });
+
+  // Reject friend request
+  app.post("/api/friend-requests/:id/reject", requireAuth, async (req, res) => {
+    await storage.rejectFriendRequest(req.params.id);
+    res.json({ success: true });
+  });
+
+  // Get blocked users
+  app.get("/api/blocked-users", requireAuth, async (req, res) => {
+    const blocked = await storage.getBlockedUsers(req.session.userId!);
+    res.json(blocked);
+  });
+
+  // Block user
+  app.post("/api/blocked-users", requireAuth, async (req, res) => {
+    const { blockedUserId } = req.body;
+    const userId = req.session.userId!;
+
+    if (userId === blockedUserId) {
+      return res.status(400).json({ error: "Cannot block yourself" });
+    }
+
+    await storage.removeFriend(userId, blockedUserId);
+    const blocked = await storage.blockUser({ userId, blockedUserId });
+    res.json(blocked);
+  });
+
+  // Unblock user
+  app.delete("/api/blocked-users/:blockedUserId", requireAuth, async (req, res) => {
+    await storage.unblockUser(req.session.userId!, req.params.blockedUserId);
+    res.json({ success: true });
+  });
+
+  // Get chat rooms
+  app.get("/api/chat-rooms", async (req, res) => {
+    const rooms = await storage.getChatRooms();
+    res.json(rooms);
+  });
+
+  // Get chat room
+  app.get("/api/chat-rooms/:id", async (req, res) => {
+    const room = await storage.getChatRoom(req.params.id);
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+    res.json(room);
+  });
+
+  // Create chat room
+  app.post("/api/chat-rooms", requireAuth, async (req, res) => {
+    const { name, description } = req.body;
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ error: "Room name required" });
+    }
+    const room = await storage.createChatRoom({
+      name: name.trim(),
+      description: description?.trim() || null,
+      isPublic: true,
+      createdBy: req.session.userId!
+    });
+    res.json(room);
+  });
+
+  // Get chat messages
+  app.get("/api/chat-rooms/:id/messages", async (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const messages = await storage.getChatMessages(req.params.id, limit);
+    res.json(messages);
+  });
+
+  // Get conversations
+  app.get("/api/conversations", requireAuth, async (req, res) => {
+    const conversations = await storage.getConversations(req.session.userId!);
+    res.json(conversations);
+  });
+
+  // Get or create conversation
+  app.post("/api/conversations", requireAuth, async (req, res) => {
+    const { userId } = req.body;
+    const currentUserId = req.session.userId!;
+
+    if (currentUserId === userId) {
+      return res.status(400).json({ error: "Cannot message yourself" });
+    }
+
+    const blocked = await storage.isBlocked(currentUserId, userId);
+    if (blocked) {
+      return res.status(400).json({ error: "Cannot message this user" });
+    }
+
+    const conversation = await storage.getOrCreateConversation(currentUserId, userId);
+    res.json(conversation);
+  });
+
+  // Get private messages
+  app.get("/api/conversations/:id/messages", requireAuth, async (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const messages = await storage.getPrivateMessages(req.params.id, limit);
+    await storage.markMessagesAsRead(req.params.id, req.session.userId!);
+    res.json(messages);
+  });
+
+  // Upload custom avatar (user-uploaded, costs coins)
+  app.post("/api/upload-avatar", requireAuth, upload.single("file"), async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const avatarCost = 1000;
+      if (user.craveCoins < avatarCost) {
+        return res.status(400).json({ error: `Not enough coins. Need ${avatarCost} coins.` });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const ext = req.file.originalname.split(".").pop() || "png";
+      const filename = `user-avatar-${userId}-${Date.now()}.${ext}`;
+      const url = await uploadFile("user-avatars", filename, req.file.buffer, req.file.mimetype);
+
+      if (!url) {
+        return res.status(500).json({ error: "Upload failed" });
+      }
+
+      await storage.updateUserCoins(userId, user.craveCoins - avatarCost);
+      const avatar = await storage.createUserAvatar({ userId, imageUrl: url });
+      
+      const storeItem = await storage.createStoreItem({
+        name: `Custom Avatar`,
+        imageUrl: url,
+        price: 0,
+        itemType: "avatar"
+      });
+
+      await storage.addToInventory({ userId, itemId: storeItem.id });
+      await storage.updateUserAvatar(userId, storeItem.id);
+
+      res.json({ 
+        success: true, 
+        avatarUrl: url, 
+        newBalance: user.craveCoins - avatarCost,
+        storeItemId: storeItem.id
+      });
+    } catch (error) {
+      console.error("Custom avatar upload error:", error);
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
   return httpServer;
 }
