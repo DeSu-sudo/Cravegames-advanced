@@ -52,16 +52,26 @@ export async function registerRoutes(
   // Create session store for production
   let sessionStore;
   if (process.env.DATABASE_URL) {
-    const PgStore = connectPgSimple(session);
-    const pool = new pg.Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
-    });
-    sessionStore = new PgStore({
-      pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    });
+    try {
+      const PgStore = connectPgSimple(session);
+      const pool = new pg.Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+      });
+      
+      // Handle pool errors gracefully
+      pool.on('error', (err) => {
+        console.error('Session store pool error:', err);
+      });
+      
+      sessionStore = new PgStore({
+        pool,
+        tableName: "session",
+        createTableIfMissing: true,
+      });
+    } catch (err) {
+      console.error('Failed to create session store, using memory sessions:', err);
+    }
   }
 
   // Session middleware
@@ -115,22 +125,6 @@ export async function registerRoutes(
       const user = await storage.createUser({ ...parsed, password: hashedPassword });
       req.session.userId = user.id;
       
-      // Explicitly save session before responding (required for async session stores)
-      try {
-        await new Promise<void>((resolve, reject) => {
-          req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              reject(err);
-            } else {
-              resolve();
-            }
-          });
-        });
-      } catch (sessionErr) {
-        console.error("Failed to save session, continuing anyway:", sessionErr);
-      }
-      
       const { password, ...userWithoutPassword } = user;
       
       // New users don't have an avatar yet, but include the field for type consistency
@@ -156,22 +150,6 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid credentials" });
       }
       req.session.userId = user.id;
-      
-      // Explicitly save session before responding (required for async session stores)
-      try {
-        await new Promise<void>((resolve, reject) => {
-          req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              reject(err);
-            } else {
-              resolve();
-            }
-          });
-        });
-      } catch (sessionErr) {
-        console.error("Failed to save session, continuing anyway:", sessionErr);
-      }
       
       const { password: _, ...userWithoutPassword } = user;
       
@@ -465,23 +443,6 @@ export async function registerRoutes(
     
     if (password === adminPassword) {
       req.session.adminVerified = true;
-      
-      // Explicitly save session before responding (required for async session stores)
-      try {
-        await new Promise<void>((resolve, reject) => {
-          req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              reject(err);
-            } else {
-              resolve();
-            }
-          });
-        });
-      } catch (sessionErr) {
-        console.error("Failed to save session, continuing anyway:", sessionErr);
-      }
-      
       res.json({ success: true });
     } else {
       res.status(401).json({ error: "Invalid admin password" });
