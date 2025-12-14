@@ -114,6 +114,15 @@ export async function registerRoutes(
       const hashedPassword = await bcrypt.hash(parsed.password, SALT_ROUNDS);
       const user = await storage.createUser({ ...parsed, password: hashedPassword });
       req.session.userId = user.id;
+      
+      // Explicitly save session before responding (required for async session stores)
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
       const { password, ...userWithoutPassword } = user;
       
       // New users don't have an avatar yet, but include the field for type consistency
@@ -139,6 +148,15 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid credentials" });
       }
       req.session.userId = user.id;
+      
+      // Explicitly save session before responding (required for async session stores)
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
       const { password: _, ...userWithoutPassword } = user;
       
       // Fetch avatar image URL if user has an active avatar
@@ -431,6 +449,15 @@ export async function registerRoutes(
     
     if (password === adminPassword) {
       req.session.adminVerified = true;
+      
+      // Explicitly save session before responding (required for async session stores)
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
       res.json({ success: true });
     } else {
       res.status(401).json({ error: "Invalid admin password" });
