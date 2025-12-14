@@ -16,7 +16,7 @@ export function GameCard({ game, variant = "default" }: GameCardProps) {
         className={cn(
           "group relative rounded-md overflow-hidden cursor-pointer transition-transform duration-200 active:scale-[0.98]",
           variant === "carousel"
-            ? "w-[130px] sm:w-[145px] md:w-[160px] lg:w-[170px] flex-shrink-0 aspect-[4/3]"
+            ? "w-[120px] xs:w-[130px] sm:w-[145px] md:w-[160px] lg:w-[170px] flex-shrink-0 aspect-[4/3]"
             : "w-full aspect-[4/3]"
         )}
         data-testid={`card-game-${game.id}`}

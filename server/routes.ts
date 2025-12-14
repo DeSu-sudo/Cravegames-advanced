@@ -7,6 +7,8 @@ import { storage } from "./storage";
 import { uploadFile, supabase } from "./supabase";
 import { insertUserSchema, insertCommentSchema, insertRatingSchema, insertGameSchema, insertCategorySchema, insertStoreItemSchema } from "@shared/schema";
 import { z } from "zod";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -44,15 +46,36 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Trust proxy for production (Render, Heroku, etc.)
+  app.set("trust proxy", 1);
+
+  // Create session store for production
+  let sessionStore;
+  if (process.env.DATABASE_URL) {
+    const PgStore = connectPgSimple(session);
+    const pool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    });
+    sessionStore = new PgStore({
+      pool,
+      tableName: "session",
+      createTableIfMissing: true,
+    });
+  }
+
   // Session middleware
   app.use(
     session({
+      store: sessionStore,
       secret: process.env.SESSION_SECRET || "cravegames-secret-key",
       resave: false,
       saveUninitialized: false,
+      proxy: true,
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       },
     })
@@ -174,12 +197,23 @@ export async function registerRoutes(
 
   // Get games by category
   app.get("/api/category/:name", async (req, res) => {
-    const category = await storage.getCategoryByName(req.params.name);
+    const decodedName = decodeURIComponent(req.params.name);
+    const category = await storage.getCategoryByName(decodedName);
     if (!category) {
       return res.status(404).json({ error: "Category not found" });
     }
     const games = await storage.getGamesByCategory(category.id);
     res.json(games);
+  });
+
+  // Get random game
+  app.get("/api/random", async (req, res) => {
+    const games = await storage.getGames();
+    if (games.length === 0) {
+      return res.status(404).json({ error: "No games available" });
+    }
+    const randomGame = games[Math.floor(Math.random() * games.length)];
+    res.json(randomGame);
   });
 
   // Get game details

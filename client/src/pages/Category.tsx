@@ -11,7 +11,7 @@ export default function Category() {
   const [sortBy, setSortBy] = useState("play_count");
 
   const { data: games, isLoading } = useQuery<Game[]>({
-    queryKey: ["/api/category", name, sortBy],
+    queryKey: [`/api/category/${encodeURIComponent(name || "")}`],
   });
 
   const sortedGames = games ? [...games].sort((a, b) => {

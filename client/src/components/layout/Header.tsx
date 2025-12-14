@@ -37,24 +37,24 @@ export function Header({ currentUser, games, menuButton }: HeaderProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 p-4 md:px-6 bg-background/80 backdrop-blur-xl border-b border-border">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4 md:px-6 bg-background/80 backdrop-blur-xl border-b border-border">
       {/* Mobile menu button */}
       {menuButton}
 
       {/* Search container */}
       <div ref={searchRef} className="relative flex-1 max-w-lg mx-auto md:mx-0">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground pointer-events-none" />
           <Input
             type="search"
-            placeholder="Search for games..."
+            placeholder="Search games..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setShowResults(e.target.value.length > 0);
             }}
             onFocus={() => searchQuery.length > 0 && setShowResults(true)}
-            className="pl-12 pr-4 h-12 md:h-11 bg-card border-border rounded-full text-base"
+            className="pl-10 sm:pl-12 pr-3 sm:pr-4 h-10 sm:h-11 bg-card border-border rounded-full text-sm sm:text-base"
             data-testid="input-search"
           />
         </div>
@@ -103,16 +103,16 @@ export function Header({ currentUser, games, menuButton }: HeaderProps) {
       <div ref={coinsRef} className="relative flex-shrink-0">
         <button
           onClick={() => setShowCoinsMenu(!showCoinsMenu)}
-          className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-2 hover-elevate cursor-pointer min-h-[44px]"
+          className="flex items-center gap-1.5 sm:gap-2 bg-card border border-border rounded-full px-2 sm:px-3 py-1.5 sm:py-2 hover-elevate cursor-pointer min-h-[40px] sm:min-h-[44px]"
           data-testid="button-coins"
         >
-          <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-xs sm:text-sm">
             C
           </div>
-          <span className="font-semibold text-sm" data-testid="text-coin-balance">
+          <span className="font-semibold text-xs sm:text-sm" data-testid="text-coin-balance">
             {currentUser ? currentUser.craveCoins.toLocaleString() : "0"}
           </span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
         </button>
 
         {/* Coins dropdown menu */}

@@ -17,6 +17,7 @@ import MakeMore from "@/pages/MakeMore";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Admin from "@/pages/Admin";
+import RandomGame from "@/pages/RandomGame";
 import NotFound from "@/pages/not-found";
 import type { Category as CategoryType, Game, UserWithAvatar } from "@shared/schema";
 
@@ -63,6 +64,7 @@ function AppContent() {
             <Route path="/" component={Home} />
             <Route path="/category/:name" component={Category} />
             <Route path="/game/:id" component={GameDetail} />
+            <Route path="/random" component={RandomGame} />
             <Route path="/store" component={Store} />
             <Route path="/inventory" component={Inventory} />
             <Route path="/favorites" component={Favorites} />
