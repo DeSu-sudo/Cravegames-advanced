@@ -116,12 +116,20 @@ export async function registerRoutes(
       req.session.userId = user.id;
       
       // Explicitly save session before responding (required for async session stores)
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save error:", err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
         });
-      });
+      } catch (sessionErr) {
+        console.error("Failed to save session, continuing anyway:", sessionErr);
+      }
       
       const { password, ...userWithoutPassword } = user;
       
@@ -150,12 +158,20 @@ export async function registerRoutes(
       req.session.userId = user.id;
       
       // Explicitly save session before responding (required for async session stores)
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save error:", err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
         });
-      });
+      } catch (sessionErr) {
+        console.error("Failed to save session, continuing anyway:", sessionErr);
+      }
       
       const { password: _, ...userWithoutPassword } = user;
       
@@ -451,12 +467,20 @@ export async function registerRoutes(
       req.session.adminVerified = true;
       
       // Explicitly save session before responding (required for async session stores)
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save error:", err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
         });
-      });
+      } catch (sessionErr) {
+        console.error("Failed to save session, continuing anyway:", sessionErr);
+      }
       
       res.json({ success: true });
     } else {
