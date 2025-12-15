@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import { storage } from "./storage";
 import { uploadFile, supabase } from "./supabase";
+import { setupWebSocket } from "./websocket";
 import { insertUserSchema, insertCommentSchema, insertRatingSchema, insertGameSchema, insertCategorySchema, insertStoreItemSchema } from "@shared/schema";
 import { z } from "zod";
 import createMemoryStore from "memorystore";
@@ -47,6 +48,9 @@ export async function registerRoutes(
 ): Promise<Server> {
   // Trust proxy for production (Render, Heroku, etc.)
   app.set("trust proxy", 1);
+
+  // Setup WebSocket server for real-time chat
+  setupWebSocket(httpServer);
 
   // Create memory-based session store (works with Supabase - no separate DB needed)
   const MemoryStore = createMemoryStore(session);
