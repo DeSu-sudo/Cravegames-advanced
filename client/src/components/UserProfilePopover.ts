@@ -21,7 +21,7 @@ import {
   Clock,
   Check,
 } from "lucide-react";
-import type { UserWithAvatar, FriendWithInfo, FriendRequest } from "@shared/schema";
+import type { UserWithAvatar, FriendWithInfo, FriendRequestWithUser } from "@shared/schema";
 
 interface UserProfilePopoverProps {
   userId: string;
@@ -53,13 +53,13 @@ export function UserProfilePopover({
   });
 
   // Get sent friend requests to check if request is pending
-  const { data: sentRequests } = useQuery<FriendRequest[]>({
+  const { data: sentRequests } = useQuery<FriendRequestWithUser[]>({
     queryKey: ["/api/friend-requests/sent"],
     enabled: !!currentUser && open,
   });
 
   // Get received friend requests
-  const { data: receivedRequests } = useQuery<any[]>({
+  const { data: receivedRequests } = useQuery<FriendRequestWithUser[]>({
     queryKey: ["/api/friend-requests"],
     enabled: !!currentUser && open,
   });
@@ -147,15 +147,14 @@ export function UserProfilePopover({
   // Start conversation mutation
   const startConversationMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/conversations", { userId });
-      return res.json();
+      await apiRequest("POST", "/api/conversations", { userId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      navigate("/chat");
+      navigate(`/chat?user=${userId}`);
       toast({
-        title: "Conversation started",
-        description: `Opening chat with ${username}`,
+        title: "Opening chat",
+        description: `Starting conversation with ${username}`,
       });
       setOpen(false);
     },
